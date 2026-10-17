@@ -8,11 +8,22 @@ import (
 
 	"github.com/go-pdf/fpdf"
 	"github.com/miguehm/cvyml/assets/fonts"
+	assetIcons "github.com/miguehm/cvyml/assets/icons"
+	"github.com/miguehm/cvyml/internal/icons"
 	"github.com/miguehm/cvyml/internal/model"
 )
 
 const (
-	fontFamily       = "Tinos"
+	fontFamily     = "Tinos"
+	iconFontFamily = "Icons"
+	iconSizeRatio  = 0.85
+	iconGapMM      = 0.9
+	// iconCenterRatio is the vertical centre of a Bootstrap Icons glyph above
+	// the baseline, expressed as a fraction of the icon em. textCapRatio is the
+	// cap height of Tinos, used to centre icons on the body text optically.
+	iconCenterRatio  = 0.51
+	textCapRatio     = 0.662
+	contactSeparator = "  \u2022  "
 	defaultPaper     = "letter"
 	defaultMarginMM  = 19.05 // 0.75 inch
 	defaultBodySize  = 10.0
@@ -60,6 +71,7 @@ func (h *harvardRenderer) Render(w io.Writer, cv *model.CV) error {
 	pdf.AddUTF8FontFromBytes(fontFamily, "B", fonts.TinosBold)
 	pdf.AddUTF8FontFromBytes(fontFamily, "I", fonts.TinosItalic)
 	pdf.AddUTF8FontFromBytes(fontFamily, "BI", fonts.TinosBoldItalic)
+	pdf.AddUTF8FontFromBytes(iconFontFamily, "", assetIcons.BootstrapIcons)
 
 	pdf.AddPage()
 
@@ -70,6 +82,7 @@ func (h *harvardRenderer) Render(w io.Writer, cv *model.CV) error {
 		sectSize:  defaultSectSize,
 		dateSize:  defaultDateSize,
 		bodySize:  o.BodySize,
+		iconSize:  o.BodySize * iconSizeRatio,
 		lineH:     ptToMM(o.BodySize) * 1.28,
 		indent:    4.0,
 		left:      o.Margin,
@@ -126,6 +139,7 @@ type harvardDoc struct {
 	sectSize         float64
 	dateSize         float64
 	bodySize         float64
+	iconSize         float64
 	lineH            float64
 	indent           float64
 	left             float64
@@ -140,6 +154,13 @@ func ptToMM(pt float64) float64 { return pt / 72.0 * 25.4 }
 
 func (d *harvardDoc) setFont(style string, size float64) {
 	d.pdf.SetFont(fontFamily, style, size)
+	d.pdf.SetTextColor(0, 0, 0)
+}
+
+// setIconFont selects the icon typeface at the configured icon size. Icons
+// share the text colour so they match the classic monochrome Harvard header.
+func (d *harvardDoc) setIconFont() {
+	d.pdf.SetFont(iconFontFamily, "", d.iconSize)
 	d.pdf.SetTextColor(0, 0, 0)
 }
 
@@ -160,63 +181,147 @@ func (d *harvardDoc) header(b model.Basics) {
 		d.pdf.CellFormat(d.contentWidth, d.lineH, b.Label, "", 1, "C", false, 0, "")
 	}
 
-	segs := d.contactSegments(b)
-	if len(segs) > 0 {
-		d.renderContact(segs)
-	}
+	d.renderContact(d.contactItems(b))
 	d.pdf.Ln(d.lineH * 0.4)
 }
 
-// contactSegments builds the header contact line as linkable segments.
-func (d *harvardDoc) contactSegments(b model.Basics) []segment {
-	var parts []segment
-	add := func(text, url string) {
-		if strings.TrimSpace(text) != "" {
-			parts = append(parts, segment{Text: text, URL: url})
-		}
-	}
-	add(b.Phone, "")
-	if b.Email != "" {
-		add(b.Email, "mailto:"+b.Email)
-	}
-	add(b.Location, "")
-	for _, p := range b.Profiles {
-		add(p.Network, p.URL)
-	}
-
-	if len(parts) == 0 {
-		return nil
-	}
-	sep := segment{Text: "  \u2022  "}
-	var out []segment
-	for i, p := range parts {
-		if i > 0 {
-			out = append(out, sep)
-		}
-		out = append(out, p)
-	}
-	return out
+// contactItem is a single header contact detail, optionally prefixed by an
+// icon glyph, and optionally linked to a URL.
+type contactItem struct {
+	Icon string
+	Text string
+	URL  string
 }
 
-func (d *harvardDoc) renderContact(segs []segment) {
-	d.setFont("", d.bodySize)
+// contactItems builds the header contact details in display order. Icons can be
+// turned off entirely with "basics.icons: false" and overridden per profile
+// with "icon:".
+func (d *harvardDoc) contactItems(b model.Basics) []contactItem {
+	showIcons := b.Icons == nil || *b.Icons
 
-	total := 0.0
-	for _, s := range segs {
-		total += d.pdf.GetStringWidth(s.Text)
+	var items []contactItem
+	add := func(icon, text, url string) {
+		if strings.TrimSpace(text) == "" {
+			return
+		}
+		if !showIcons {
+			icon = ""
+		}
+		items = append(items, contactItem{Icon: icon, Text: text, URL: url})
 	}
-	if total > d.contentWidth {
-		// Too wide for one centered line: fall back to plain wrapped text.
-		d.pdf.SetX(d.left)
-		d.pdf.MultiCell(d.contentWidth, d.lineH, segmentText(segs), "", "C", false)
+	add(icons.Telephone, b.Phone, "")
+	if b.Email != "" {
+		add(icons.Envelope, b.Email, "mailto:"+b.Email)
+	}
+	add(icons.Location, b.Location, "")
+	for _, p := range b.Profiles {
+		icon := icons.ForNetwork(p.Network)
+		if p.Icon != "" {
+			icon = p.Icon
+		}
+		add(icon, p.Network, p.URL)
+	}
+	return items
+}
+
+// contactItemWidth measures an item including its icon and the gap that
+// separates the glyph from the text.
+func (d *harvardDoc) contactItemWidth(it contactItem) float64 {
+	w := 0.0
+	if it.Icon != "" {
+		d.setIconFont()
+		w += d.pdf.GetStringWidth(string(icons.Rune(it.Icon))) + iconGapMM
+	}
+	d.setFont("", d.bodySize)
+	return w + d.pdf.GetStringWidth(it.Text)
+}
+
+// drawContactItem draws one item at (x, y) advancing the icon/text baseline so
+// both sit on the same line.
+func (d *harvardDoc) drawContactItem(x, y float64, it contactItem) {
+	if it.Icon != "" {
+		d.setIconFont()
+		glyph := string(icons.Rune(it.Icon))
+		gw := d.pdf.GetStringWidth(glyph)
+		// fpdf places the baseline at y+0.5*h+0.3*size (size in page units).
+		// Correct for the smaller icon, then drop it a hair so the glyph centre
+		// meets the cap-height centre of the body text.
+		nudge := ptToMM(0.3*(d.bodySize-d.iconSize)) + d.iconVerticalOffset()
+		d.pdf.SetXY(x, y+nudge)
+		d.pdf.CellFormat(gw, d.lineH, glyph, "", 0, "L", false, 0, it.URL)
+		x += gw + iconGapMM
+	}
+	d.setFont("", d.bodySize)
+	tw := d.pdf.GetStringWidth(it.Text)
+	d.pdf.SetXY(x, y)
+	d.pdf.CellFormat(tw, d.lineH, it.Text, "", 0, "L", false, 0, it.URL)
+}
+
+// iconVerticalOffset is the extra downward shift, in millimetres, that lines up
+// an icon's glyph centre with the cap-height centre of the body text.
+func (d *harvardDoc) iconVerticalOffset() float64 {
+	return iconCenterRatio*ptToMM(d.iconSize) - 0.5*textCapRatio*ptToMM(d.bodySize)
+}
+
+// renderContact draws the contact details centered on one or more lines,
+// separated by bullets, wrapping only when the content does not fit.
+func (d *harvardDoc) renderContact(items []contactItem) {
+	if len(items) == 0 {
 		return
 	}
-	d.pdf.SetX(d.left + (d.contentWidth-total)/2)
-	for _, s := range segs {
-		w := d.pdf.GetStringWidth(s.Text)
-		d.pdf.CellFormat(w, d.lineH, s.Text, "", 0, "L", false, 0, s.URL)
+
+	widths := make([]float64, len(items))
+	for i, it := range items {
+		widths[i] = d.contactItemWidth(it)
 	}
-	d.pdf.Ln(d.lineH)
+	d.setFont("", d.bodySize)
+	sepWidth := d.pdf.GetStringWidth(contactSeparator)
+
+	var lines [][]int
+	var cur []int
+	curWidth := 0.0
+	for i := range items {
+		if len(cur) == 0 {
+			cur, curWidth = []int{i}, widths[i]
+			continue
+		}
+		if curWidth+sepWidth+widths[i] <= d.contentWidth {
+			cur = append(cur, i)
+			curWidth += sepWidth + widths[i]
+			continue
+		}
+		lines = append(lines, cur)
+		cur, curWidth = []int{i}, widths[i]
+	}
+	lines = append(lines, cur)
+
+	for _, line := range lines {
+		total := 0.0
+		for j, idx := range line {
+			if j > 0 {
+				total += sepWidth
+			}
+			total += widths[idx]
+		}
+		d.ensureSpace(d.lineH)
+		y := d.pdf.GetY()
+		x := d.left + (d.contentWidth-total)/2
+		if x < d.left {
+			x = d.left
+		}
+		for j, idx := range line {
+			if j > 0 {
+				d.setFont("", d.bodySize)
+				d.pdf.SetXY(x, y)
+				d.pdf.CellFormat(sepWidth, d.lineH, contactSeparator, "", 0, "L", false, 0, "")
+				x += sepWidth
+			}
+			d.drawContactItem(x, y, items[idx])
+			x += widths[idx]
+		}
+		d.pdf.SetY(y + d.lineH)
+		d.pdf.SetX(d.left)
+	}
 }
 
 // title renders a section heading with a horizontal rule underneath.

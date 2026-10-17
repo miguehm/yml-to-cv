@@ -57,9 +57,9 @@ achievements:
       - "Awarded for a short story submitted to a university contest."
 `
 
-func renderSample(t *testing.T, opts Options) []byte {
+func renderYAML(t *testing.T, opts Options, doc string) []byte {
 	t.Helper()
-	cv, err := model.Parse([]byte(sampleYAML))
+	cv, err := model.Parse([]byte(doc))
 	if err != nil {
 		t.Fatalf("Parse() error = %v", err)
 	}
@@ -68,6 +68,11 @@ func renderSample(t *testing.T, opts Options) []byte {
 		t.Fatalf("Render() error = %v", err)
 	}
 	return buf.Bytes()
+}
+
+func renderSample(t *testing.T, opts Options) []byte {
+	t.Helper()
+	return renderYAML(t, opts, sampleYAML)
 }
 
 func TestRenderProducesPDF(t *testing.T) {
@@ -119,6 +124,120 @@ func TestEntryDatesAlignRight(t *testing.T) {
 	}
 	if x < 300 {
 		t.Errorf("date x = %.2f; want right-aligned near the right margin", x)
+	}
+}
+
+// contactOps maps each text-drawing operation in the document to the baselines
+// (distance from the top, in points) at which it is drawn.
+func contactOps(t *testing.T, content string) map[string][]float64 {
+	t.Helper()
+	re := regexp.MustCompile(`BT ([\d.]+) ([\d.]+) Td \((.*?)\)Tj ET`)
+	ops := map[string][]float64{}
+	for _, m := range re.FindAllStringSubmatch(content, -1) {
+		y, err := strconv.ParseFloat(m[2], 64)
+		if err != nil {
+			t.Fatalf("parse y: %v", err)
+		}
+		ops[m[3]] = append(ops[m[3]], y)
+	}
+	return ops
+}
+
+// TestContactIcons verifies the header shows the expected icon glyphs and that
+// each icon shares its baseline with the text it precedes.
+func TestContactIcons(t *testing.T) {
+	content := pdfContentStreams(t, renderSample(t, Options{}))
+	ops := contactOps(t, content)
+
+	pairs := []struct {
+		rune rune
+		text string
+	}{
+		{0xF32F, "jane@example.com"}, // envelope
+		{0xF3E8, "Puebla, Mexico"},   // geo-alt
+		{0xF3ED, "GitHub"},           // github
+	}
+	for _, p := range pairs {
+		icon := utf16BE(string(p.rune))
+		ys, ok := ops[icon]
+		if !ok {
+			t.Errorf("missing icon glyph U+%04X", p.rune)
+			continue
+		}
+		textYs, ok := ops[utf16BE(p.text)]
+		if !ok {
+			t.Errorf("missing contact text %q", p.text)
+			continue
+		}
+		// The icon is drawn slightly below the text baseline so its glyph centre
+		// lines up with the cap-height centre of the text (optical centering).
+		// The content stream measures distance from the bottom, so a smaller
+		// value means lower on the page.
+		drop := textYs[0] - ys[0]
+		if drop < 0.6 || drop > 2.2 {
+			t.Errorf("icon U+%04X drop = %.2fpt; want ~1.5pt of optical centering", p.rune, drop)
+		}
+	}
+}
+
+// TestContactIconsDisabled ensures "basics.icons: false" removes the glyphs.
+func TestContactIconsDisabled(t *testing.T) {
+	const doc = `
+basics:
+  name: "Jane Doe"
+  icons: false
+  email: "jane@example.com"
+  location: "Puebla, Mexico"
+  profiles:
+    - network: GitHub
+      url: "https://github.com/jane"
+`
+	content := pdfContentStreams(t, renderYAML(t, Options{}, doc))
+	for _, r := range []rune{0xF32F, 0xF3E8, 0xF3ED, 0xF3EE} {
+		if strings.Contains(content, utf16BE(string(r))) {
+			t.Errorf("icon U+%04X should be absent when icons are disabled", r)
+		}
+	}
+	if !strings.Contains(content, utf16BE("jane@example.com")) {
+		t.Error("contact text should still be rendered")
+	}
+}
+
+// TestContactWraps checks the contact line wraps gracefully instead of
+// overflowing when many profiles are present.
+func TestContactWraps(t *testing.T) {
+	const doc = `
+basics:
+  name: "Jane Doe"
+  email: "jane.doe@example-university-domain.example"
+  location: "Benemerita Universidad Autonoma de Puebla, Puebla, Mexico"
+  phone: "221-400-9504"
+  profiles:
+    - network: GitHub
+      url: "https://github.com/jane"
+    - network: LinkedIn
+      url: "https://linkedin.com/in/jane"
+    - network: Website
+      url: "https://jane.dev"
+    - network: Blog
+      url: "https://blog.jane.dev"
+    - network: Mastodon
+      url: "https://mastodon.social/@jane"
+    - network: GitLab
+      url: "https://gitlab.com/jane"
+`
+	content := pdfContentStreams(t, renderYAML(t, Options{}, doc))
+	ops := contactOps(t, content)
+	baselines := map[float64]bool{}
+	for _, text := range []string{"221-400-9504", "jane.doe@example-university-domain.example", "Benemerita Universidad Autonoma de Puebla, Puebla, Mexico", "GitHub", "LinkedIn", "Website", "Blog", "Mastodon", "GitLab"} {
+		ys, ok := ops[utf16BE(text)]
+		if !ok {
+			t.Fatalf("missing contact text %q", text)
+		}
+		baselines[ys[0]] = true
+	}
+	if len(baselines) < 2 {
+		t.Errorf("expected the contact line to wrap onto multiple baselines, got %v", baselines)
 	}
 }
 

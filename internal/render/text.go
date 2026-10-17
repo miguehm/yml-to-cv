@@ -1,9 +1,6 @@
 package render
 
-import (
-	"regexp"
-	"strings"
-)
+import "regexp"
 
 // segment is a piece of text, optionally linked to a URL.
 type segment struct {
@@ -34,15 +31,6 @@ func splitSegments(s string) []segment {
 		segs = append(segs, segment{Text: s})
 	}
 	return segs
-}
-
-// segmentText returns the concatenated display text of the segments.
-func segmentText(segs []segment) string {
-	var b strings.Builder
-	for _, s := range segs {
-		b.WriteString(s.Text)
-	}
-	return b.String()
 }
 
 // hasURL reports whether any segment carries a link.
