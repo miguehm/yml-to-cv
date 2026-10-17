@@ -1,13 +1,21 @@
 BINARY := cvyml
+PKG    := github.com/miguehm/cvyml/cmd/cvyml
+WASM   := cvyml.wasm
 PDF    := cv.pdf
 YAML   := cv.yml
 
-.PHONY: all build render run test fmt vet check clean
+.PHONY: all build install wasm render run test fmt vet check clean
 
 all: build
 
 build:
 	go build -o bin/$(BINARY) ./cmd/cvyml
+
+install:
+	go install $(PKG)
+
+wasm:
+	GOOS=js GOARCH=wasm go build -o bin/$(WASM) ./cmd/cvyml-wasm
 
 render:
 	go run ./cmd/cvyml -in $(YAML) -out $(PDF)

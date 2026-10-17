@@ -32,6 +32,16 @@ archivos externos ni conexión a red para generar el PDF.
 
 ## Instalación
 
+Con el gestor de paquetes de Go (recomendado):
+
+```sh
+go install github.com/miguehm/cvyml/cmd/cvyml@latest
+```
+
+El binario `cvyml` queda en `$(go env GOPATH)/bin` (normalmente en el `PATH`).
+
+Desde el código fuente:
+
 ```sh
 git clone https://github.com/miguehm/cvyml.git
 cd cvyml
@@ -71,17 +81,25 @@ Banderas disponibles:
 ### Makefile
 
 ```sh
-make build   # compila el binario en bin/cvyml
-make render  # go run ... -in cv.yml -out cv.pdf
-make run     # compila y luego ejecuta el binario
-make test    # ejecuta las pruebas
-make fmt     # gofmt -w .
-make vet     # go vet ./...
-make check   # fmt + vet + test
-make clean   # elimina bin/ y cv.pdf
+make build    # compila el binario en bin/cvyml
+make install  # go install ./cmd/cvyml (deja cvyml en el GOPATH)
+make wasm     # compila el módulo WebAssembly en bin/cvyml.wasm
+make render   # go run ... -in cv.yml -out cv.pdf
+make run      # compila y luego ejecuta el binario
+make test     # ejecuta las pruebas
+make fmt      # gofmt -w .
+make vet      # go vet ./...
+make check    # fmt + vet + test
+make clean    # elimina bin/ y cv.pdf
 ```
 
 ## Funcionamiento
+
+El núcleo (`internal/cvyml`) es independiente de la plataforma: recibe los bytes
+de entrada y un `io.Writer` de salida, y no toca el sistema de archivos ni el
+terminal. La CLI nativa (`internal/cli` + `cmd/cvyml`) solo aporta el parseo de
+banderas y la lectura/escritura de ficheros; un futuro binario WebAssembly
+(`cmd/cvyml-wasm`) reutiliza exactamente el mismo núcleo.
 
 El flujo es lineal y consta de tres etapas:
 
@@ -105,13 +123,51 @@ El flujo es lineal y consta de tres etapas:
 La estructura del proyecto es:
 
 ```
-cmd/cvyml/          Punto de entrada (banderas, lectura, escritura).
+cmd/cvyml/          CLI nativa (instalable con go install).
+cmd/cvyml-wasm/     Punto de entrada WebAssembly (js/wasm).
+internal/cli/       Banderas, I/O de ficheros y código de salida de la CLI.
+internal/cvyml/     Núcleo portable: parseo, volcado y render (sin I/O).
 internal/model/     Esquema del CV, parseo YAML y tipo PartialDate.
 internal/render/    Renderizador Harvard y utilidades de texto/enlaces.
 internal/icons/     Registro de iconos y su mapeo a puntos de código.
 assets/fonts/       Fuentes Tinos embebidas (OFL).
 assets/icons/       Tipo de letra Bootstrap Icons embebida (MIT).
 ```
+
+## WebAssembly
+
+El comando `cmd/cvyml-wasm` compila el mismo núcleo a un módulo `js/wasm` que
+expone un objeto global `cvyml` a JavaScript:
+
+```sh
+make wasm   # genera bin/cvyml.wasm
+```
+
+En el navegador, carga `wasm_exec.js` (el que distribuye tu versión de Go, en
+`$(go env GOROOT)/misc/wasm/`) y el módulo, y luego:
+
+```js
+const go = new Go();
+const { instance } = await WebAssembly.instantiateStreaming(
+  fetch("cvyml.wasm"), go.importObject
+);
+go.run(instance);
+
+const { pdf, error } = cvyml.render(yamlText, { paper: "a4", margin: 15 });
+if (error) throw new Error(error);
+// `pdf` es un Uint8Array con el PDF listo para descargar.
+```
+
+API expuesta:
+
+| Función                  | Devuelve            | Descripción                                        |
+| ------------------------ | ------------------- | -------------------------------------------------- |
+| `cvyml.render(yaml, opts)` | `{ pdf, error }`  | Genera el PDF. `pdf` es un `Uint8Array`.           |
+| `cvyml.parse(yaml)`        | `{ yaml, error }` | Devuelve el CV validado y normalizado como YAML.   |
+
+`opts` es opcional y puede ser una cadena (`"letter"` o `"a4"`) o un objeto
+`{ paper, margin }`. Las funciones no lanzan excepciones: ante un error
+devuelven el objeto con `error` establecido y el campo de carga útil a `null`.
 
 ## Esquema del YAML
 
