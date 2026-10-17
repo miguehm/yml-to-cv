@@ -1,0 +1,92 @@
+basics:
+  name: "Miguel Angel Hernandez Moreno"
+  label: "Computer Science Engineering Student"
+  location: "Puebla, Mexico"
+  email: "cm.mahm1@gmail.com"
+  phone: "221-400-9504"
+  summary: >-
+    Estudiante de Ingeniería en Ciencias de la Computación interesado en la
+    lectura, la escritura creativa y el desarrollo web full-stack. Combino el
+    interés por las historias y la narrativa con la creación de herramientas
+    digitales, desde interfaces web hasta APIs y sistemas backend. He
+    desarrollado aplicaciones con tecnologías como Astro, React, Django REST
+    Framework y PostgreSQL, y obtuve el segundo lugar en un concurso de
+    narraciones de ciencia ficción de la BUAP.
+  profiles:
+    - network: "GitHub"
+      username: "miguehm"
+      url: "https://github.com/miguehm"
+    - network: "Website"
+      url: "https://miguehm.com"
+
+section_order:
+  - education
+  - experience
+  - projects
+  - skills
+  - achievements
+
+education:
+  - institution: "Benemérita Universidad Autónoma de Puebla"
+    area: "Computer Science Engineering"
+    degree: "BS"
+    location: "Puebla, Mexico"
+    start: "2020-08"
+    end: "2025-11"
+    highlights:
+      - "Formación en programación, algoritmos, estructuras de datos y desarrollo de software."
+
+experience:
+  - company: "Inclut"
+    position: "Backend Developer"
+    location: "Remote"
+    start: "2025-06"
+    end: "2025-06"
+    highlights:
+      - "Desarrolló el backend de una plataforma de inclusión laboral con Django REST Framework y PostgreSQL."
+      - "Integró la API de MailerSend para automatizar correos transaccionales."
+      - "Implementó APIs REST, autenticación segura y control de acceso basado en roles."
+  - company: "PDCA Web App"
+    position: "Backend Developer"
+    location: "Remote"
+    start: "2025-07"
+    end: "2025-07"
+    highlights:
+      - "Desarrolló el backend de una aplicación de auditorías basada en el ciclo PDCA, con APIs para usuarios, cuestionarios y resultados."
+      - "Implementó autenticación y control de acceso basado en roles para los distintos tipos de usuario."
+
+projects:
+  - name: "ContraScripts"
+    url: "https://contrascripts.miguehm.com"
+    date: "2026-06"
+    summary: "Aplicación web para escribir guiones cinematográficos utilizando Fountain, un formato de escritura de guiones basado en texto plano."
+    highlights:
+      - "Creada para facilitar la escritura y organización de guiones de cine desde una herramienta web."
+      - "Une el interés por la narrativa audiovisual con el desarrollo de software."
+  - name: "Sitio personal y blog"
+    url: "https://miguehm.com"
+    date: "2026-07"
+    summary: "Sitio personal desarrollado con Astro para presentar proyectos, publicar textos y documentar aprendizajes."
+    highlights:
+      - "Desarrolló y mantiene un sitio web propio con contenido y proyectos personales."
+      - "Implementó un flujo de despliegue automatizado mediante CI/CD."
+
+skills:
+  - label: "Full-stack Web Development"
+    details: "HTML, CSS, JavaScript, Astro, React, Django REST Framework, FastAPI, Node.js"
+  - label: "Backend & Databases"
+    details: "Python, Django REST Framework, REST APIs, PostgreSQL, autenticación y control de acceso por roles"
+  - label: "Tools"
+    details: "Git, GitHub, Docker, Linux, GitHub Actions, CI/CD"
+  - label: "Spoken Languages"
+    details: "Spanish (Native), English (Intermediate B2)"
+
+achievements:
+  - name: "Segundo lugar — Concurso de Narraciones de Ciencia Ficción, BUAP"
+    date: "2022-08-11"
+    highlights:
+      - "Obtuvo el segundo lugar el 11 de agosto de 2022 por una narración presentada en un concurso universitario de ciencia ficción."
+  - name: "Olimpiada Mexicana de Informática (OMI)"
+    date: "2019-05"
+    highlights:
+      - "Representó al estado de Puebla en la competencia nacional de programación, resolviendo problemas algorítmicos con C++."
