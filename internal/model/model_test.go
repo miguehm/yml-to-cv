@@ -55,6 +55,41 @@ func TestParseMissingName(t *testing.T) {
 	}
 }
 
+func TestParseProfileIcon(t *testing.T) {
+	const doc = `
+basics:
+  name: "Jane Doe"
+  icons: false
+  profiles:
+    - network: GitHub
+      url: "github.com/jane"
+      icon: "linkedin"
+`
+	cv, err := Parse([]byte(doc))
+	if err != nil {
+		t.Fatalf("Parse() error = %v", err)
+	}
+	if cv.Basics.Icons == nil || *cv.Basics.Icons {
+		t.Error("explicit icons: false should be preserved")
+	}
+	if got := cv.Basics.Profiles[0].Icon; got != "linkedin" {
+		t.Errorf("profile icon = %q", got)
+	}
+}
+
+func TestParseUnknownIcon(t *testing.T) {
+	const doc = `
+basics:
+  name: "Jane Doe"
+  profiles:
+    - network: Whatever
+      icon: "not-an-icon"
+`
+	if _, err := Parse([]byte(doc)); err == nil {
+		t.Fatal("expected error for unknown icon, got nil")
+	}
+}
+
 func TestParseInvalidDate(t *testing.T) {
 	const doc = `
 basics:

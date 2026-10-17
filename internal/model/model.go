@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/miguehm/cvyml/internal/icons"
 )
 
 // Section names recognised in the "section_order" field.
@@ -46,6 +48,7 @@ type Basics struct {
 	Email    string    `yaml:"email,omitempty"`
 	Phone    string    `yaml:"phone,omitempty"`
 	Summary  string    `yaml:"summary,omitempty"`
+	Icons    *bool     `yaml:"icons,omitempty"`
 	Profiles []Profile `yaml:"profiles,omitempty"`
 }
 
@@ -54,6 +57,9 @@ type Profile struct {
 	Network  string `yaml:"network"`
 	Username string `yaml:"username,omitempty"`
 	URL      string `yaml:"url,omitempty"`
+	// Icon overrides the glyph chosen from Network; it must be one of the
+	// names accepted by the icons package.
+	Icon string `yaml:"icon,omitempty"`
 }
 
 // Education is a single academic entry.
@@ -120,6 +126,11 @@ func Parse(data []byte) (*CV, error) {
 func (cv *CV) Validate() error {
 	if strings.TrimSpace(cv.Basics.Name) == "" {
 		return fmt.Errorf("el campo obligatorio \"basics.name\" está vacío")
+	}
+	for _, p := range cv.Basics.Profiles {
+		if p.Icon != "" && !icons.IsName(p.Icon) {
+			return fmt.Errorf("icono desconocido en \"basics.profiles.icon\": %q", strings.TrimSpace(p.Icon))
+		}
 	}
 	for _, s := range cv.SectionOrder {
 		switch s {
