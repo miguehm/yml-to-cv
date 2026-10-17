@@ -1,5 +1,5 @@
 BINARY := cvyml
-PKG    := github.com/miguehm/cvyml/cmd/cvyml
+PKG    := github.com/miguehm/yml-to-cv/cmd/cvyml
 WASM   := cvyml.wasm
 PDF    := cv.pdf
 YAML   := cv.yml

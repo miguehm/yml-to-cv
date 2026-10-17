@@ -10,7 +10,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/miguehm/cvyml/internal/cvyml"
+	"github.com/miguehm/yml-to-cv/internal/cvyml"
 )
 
 // Config holds the parsed command-line options.

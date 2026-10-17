@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/miguehm/cvyml/internal/model"
+	"github.com/miguehm/yml-to-cv/internal/model"
 )
 
 const sampleYAML = `

@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/miguehm/cvyml/internal/model"
+	"github.com/miguehm/yml-to-cv/internal/model"
 )
 
 // Options configures the PDF output. Zero values fall back to sensible

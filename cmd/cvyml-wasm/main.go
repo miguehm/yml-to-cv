@@ -19,7 +19,7 @@ import (
 	"bytes"
 	"syscall/js"
 
-	"github.com/miguehm/cvyml/internal/cvyml"
+	"github.com/miguehm/yml-to-cv/internal/cvyml"
 )
 
 func main() {

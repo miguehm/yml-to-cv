@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/go-pdf/fpdf"
-	"github.com/miguehm/cvyml/assets/fonts"
-	assetIcons "github.com/miguehm/cvyml/assets/icons"
-	"github.com/miguehm/cvyml/internal/icons"
-	"github.com/miguehm/cvyml/internal/model"
+	"github.com/miguehm/yml-to-cv/assets/fonts"
+	assetIcons "github.com/miguehm/yml-to-cv/assets/icons"
+	"github.com/miguehm/yml-to-cv/internal/icons"
+	"github.com/miguehm/yml-to-cv/internal/model"
 )
 
 const (

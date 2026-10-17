@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/miguehm/cvyml/internal/icons"
+	"github.com/miguehm/yml-to-cv/internal/icons"
 )
 
 // Section names recognised in the "section_order" field.

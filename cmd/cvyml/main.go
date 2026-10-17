@@ -2,13 +2,13 @@
 //
 // Install with:
 //
-//	go install github.com/miguehm/cvyml/cmd/cvyml@latest
+//	go install github.com/miguehm/yml-to-cv/cmd/cvyml@latest
 package main
 
 import (
 	"os"
 
-	"github.com/miguehm/cvyml/internal/cli"
+	"github.com/miguehm/yml-to-cv/internal/cli"
 )
 
 func main() {

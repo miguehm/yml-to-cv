@@ -1,4 +1,4 @@
-module github.com/miguehm/cvyml
+module github.com/miguehm/yml-to-cv
 
 go 1.26.7
 

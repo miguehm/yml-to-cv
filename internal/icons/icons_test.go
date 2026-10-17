@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"testing"
 
-	assetIcons "github.com/miguehm/cvyml/assets/icons"
+	assetIcons "github.com/miguehm/yml-to-cv/assets/icons"
 )
 
 // TestEveryIconHasGlyph makes sure each registered code point exists in the

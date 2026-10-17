@@ -14,8 +14,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/miguehm/cvyml/internal/model"
-	"github.com/miguehm/cvyml/internal/render"
+	"github.com/miguehm/yml-to-cv/internal/model"
+	"github.com/miguehm/yml-to-cv/internal/render"
 )
 
 // Paper sizes accepted by the renderer.

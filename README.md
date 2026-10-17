@@ -35,7 +35,7 @@ archivos externos ni conexión a red para generar el PDF.
 Con el gestor de paquetes de Go (recomendado):
 
 ```sh
-go install github.com/miguehm/cvyml/cmd/cvyml@latest
+go install github.com/miguehm/yml-to-cv/cmd/cvyml@latest
 ```
 
 El binario `cvyml` queda en `$(go env GOPATH)/bin` (normalmente en el `PATH`).
@@ -43,7 +43,7 @@ El binario `cvyml` queda en `$(go env GOPATH)/bin` (normalmente en el `PATH`).
 Desde el código fuente:
 
 ```sh
-git clone https://github.com/miguehm/cvyml.git
+git clone https://github.com/miguehm/yml-to-cv.git
 cd cvyml
 make build
 ```
