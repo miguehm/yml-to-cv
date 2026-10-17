@@ -219,7 +219,13 @@ func (d *harvardDoc) contactItems(b model.Basics) []contactItem {
 		if p.Icon != "" {
 			icon = p.Icon
 		}
-		add(icon, p.Network, p.URL)
+		// Show the shortened URL so the address is readable when printed; the
+		// full URL stays as the clickable target.
+		text := p.Network
+		if short := shortURL(p.URL); short != "" {
+			text = short
+		}
+		add(icon, text, p.URL)
 	}
 	return items
 }
@@ -463,7 +469,9 @@ func (d *harvardDoc) experience(e model.Experience) {
 func (d *harvardDoc) project(p model.Project) {
 	title := p.Name
 	if p.URL != "" && !hasURL(splitSegments(p.Name)) {
-		title = fmt.Sprintf("[%s](%s)", p.Name, p.URL)
+		// Print the shortened URL next to the name so the address is visible on
+		// paper, while the name and the URL both link to the full URL on screen.
+		title = fmt.Sprintf("[%s](%s) ([%s](%s))", p.Name, p.URL, shortURL(p.URL), p.URL)
 	}
 	d.entryLine(title, p.Date.FormatPoint(), "B")
 	d.paragraph(p.Summary)

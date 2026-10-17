@@ -155,7 +155,7 @@ func TestContactIcons(t *testing.T) {
 	}{
 		{0xF32F, "jane@example.com"}, // envelope
 		{0xF3E8, "Puebla, Mexico"},   // geo-alt
-		{0xF3ED, "GitHub"},           // github
+		{0xF3ED, "github.com/jane"},  // github
 	}
 	for _, p := range pairs {
 		icon := utf16BE(string(p.rune))
@@ -229,7 +229,7 @@ basics:
 	content := pdfContentStreams(t, renderYAML(t, Options{}, doc))
 	ops := contactOps(t, content)
 	baselines := map[float64]bool{}
-	for _, text := range []string{"221-400-9504", "jane.doe@example-university-domain.example", "Benemerita Universidad Autonoma de Puebla, Puebla, Mexico", "GitHub", "LinkedIn", "Website", "Blog", "Mastodon", "GitLab"} {
+	for _, text := range []string{"221-400-9504", "jane.doe@example-university-domain.example", "Benemerita Universidad Autonoma de Puebla, Puebla, Mexico", "github.com/jane", "linkedin.com/in/jane", "jane.dev", "blog.jane.dev", "mastodon.social/@jane", "gitlab.com/jane"} {
 		ys, ok := ops[utf16BE(text)]
 		if !ok {
 			t.Fatalf("missing contact text %q", text)
