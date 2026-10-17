@@ -1,6 +1,9 @@
 package render
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 // segment is a piece of text, optionally linked to a URL.
 type segment struct {
@@ -31,6 +34,22 @@ func splitSegments(s string) []segment {
 		segs = append(segs, segment{Text: s})
 	}
 	return segs
+}
+
+// shortURL returns the print-friendly form of a URL: the host and path without
+// the scheme or a leading "www.". The full URL is still used as the link target
+// so the document stays clickable on screen while remaining legible on paper.
+func shortURL(u string) string {
+	s := strings.TrimSpace(u)
+	if s == "" {
+		return ""
+	}
+	if scheme := strings.Index(s, "://"); scheme >= 0 {
+		s = s[scheme+len("://"):]
+	}
+	s = strings.TrimPrefix(s, "mailto:")
+	s = strings.TrimPrefix(s, "www.")
+	return strings.TrimRight(s, "/")
 }
 
 // hasURL reports whether any segment carries a link.

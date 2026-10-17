@@ -27,3 +27,20 @@ func TestSplitSegmentsPlain(t *testing.T) {
 		t.Fatal("plain text should not carry links")
 	}
 }
+
+func TestShortURL(t *testing.T) {
+	cases := map[string]string{
+		"":                                  "",
+		"https://github.com/jane":           "github.com/jane",
+		"http://www.example.com/":           "example.com",
+		"https://www.linkedin.com/in/jane/": "linkedin.com/in/jane",
+		"https://mastodon.social/@jane":     "mastodon.social/@jane",
+		"mailto:jane@example.com":           "jane@example.com",
+		"https://contrascripts.miguehm.com": "contrascripts.miguehm.com",
+	}
+	for in, want := range cases {
+		if got := shortURL(in); got != want {
+			t.Errorf("shortURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
