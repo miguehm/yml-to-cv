@@ -50,6 +50,7 @@ func (h *harvardRenderer) Render(w io.Writer, cv *model.CV) error {
 	pdf.SetMargins(o.Margin, o.Margin, o.Margin)
 	pdf.SetAutoPageBreak(true, o.Margin)
 	pdf.SetCompression(true)
+	pdf.SetCatalogSort(true)
 	pdf.SetCreationDate(o.CreationDate)
 	pdf.SetModificationDate(o.CreationDate)
 	pdf.SetTitle(cv.Basics.Name+" - CV", true)
