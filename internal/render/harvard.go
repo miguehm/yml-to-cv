@@ -278,8 +278,7 @@ func (d *harvardDoc) entryLine(title string, date string, style string) {
 	}
 	if date != "" {
 		d.setFont("I", d.dateSize)
-		d.pdf.SetX(d.right - dateWidth)
-		d.pdf.SetY(startY)
+		d.pdf.SetXY(d.right-dateWidth, startY)
 		d.pdf.CellFormat(dateWidth, d.lineH, date, "", 0, "R", false, 0, "")
 	}
 	d.pdf.SetY(startY + d.lineH)
