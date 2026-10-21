@@ -91,6 +91,21 @@ func TestRenderProducesPDF(t *testing.T) {
 	}
 }
 
+// TestSummaryRendered guards against basics.summary being parsed but never
+// drawn into the document.
+func TestSummaryRendered(t *testing.T) {
+	const summary = "A concise professional summary."
+	const doc = `
+basics:
+  name: "Jane Doe"
+  summary: "` + summary + `"
+`
+	content := pdfContentStreams(t, renderYAML(t, Options{}, doc))
+	if !strings.Contains(content, utf16BE(summary)) {
+		t.Error("basics.summary was not rendered")
+	}
+}
+
 func TestRenderDeterministic(t *testing.T) {
 	a := renderSample(t, Options{})
 	b := renderSample(t, Options{})

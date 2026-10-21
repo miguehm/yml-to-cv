@@ -182,6 +182,12 @@ func (d *harvardDoc) header(b model.Basics) {
 	}
 
 	d.renderContact(d.contactItems(b))
+
+	if strings.TrimSpace(b.Summary) != "" {
+		d.pdf.Ln(d.lineH * 0.4)
+		d.paragraph(b.Summary)
+	}
+
 	d.pdf.Ln(d.lineH * 0.4)
 }
 
