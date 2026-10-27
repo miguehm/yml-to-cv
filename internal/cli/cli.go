@@ -23,6 +23,8 @@ type Config struct {
 	Paper string
 	// Margin is the page margin in millimetres; zero uses the default.
 	Margin float64
+	// Lang selects the language of the PDF chrome: "en" or "es".
+	Lang string
 	// Dump prints the parsed CV as YAML and exits without rendering a PDF.
 	Dump bool
 }
@@ -54,6 +56,7 @@ func Parse(args []string, stderr io.Writer) (Config, error) {
 	fs.StringVar(&cfg.Out, "out", "cv.pdf", "ruta del PDF de salida")
 	fs.StringVar(&cfg.Paper, "paper", "letter", "tamaño de papel: letter o a4")
 	fs.Float64Var(&cfg.Margin, "margin", 0, "margen de página en mm (0 = predeterminado)")
+	fs.StringVar(&cfg.Lang, "lang", "en", "idioma de los títulos y fechas del PDF: en o es")
 	fs.BoolVar(&cfg.Dump, "dump", false, "imprime el CV parseado como YAML y sale")
 	fs.Usage = func() {
 		fmt.Fprintf(stderr, "Uso: cvyml [opciones]\n\nOpciones:\n")
@@ -84,7 +87,7 @@ func Run(cfg Config, stdout io.Writer) error {
 	}
 	defer f.Close()
 
-	if err := cvyml.Render(f, data, cvyml.Options{Paper: cfg.Paper, Margin: cfg.Margin}); err != nil {
+	if err := cvyml.Render(f, data, cvyml.Options{Paper: cfg.Paper, Margin: cfg.Margin, Lang: cfg.Lang}); err != nil {
 		return err
 	}
 	if err := f.Close(); err != nil {

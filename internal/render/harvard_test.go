@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/miguehm/yml-to-cv/internal/i18n"
 	"github.com/miguehm/yml-to-cv/internal/model"
 )
 
@@ -55,6 +56,34 @@ achievements:
     date: "2022-08-11"
     highlights:
       - "Awarded for a short story submitted to a university contest."
+`
+
+const spanishSampleYAML = `
+basics:
+  name: "Jane Doe"
+  email: "jane@example.com"
+  summary: "Resumen profesional conciso."
+education:
+  - institution: "Example University"
+    degree: "BS"
+    area: "Computer Science"
+    start: "2020-08"
+    end: ""
+experience:
+  - company: "Acme Corp"
+    position: "Backend Developer"
+    start: "2024-06"
+    end: ""
+projects:
+  - name: "ContraScripts"
+    date: "2026-06"
+    summary: "Aplicación web."
+skills:
+  - label: "Languages"
+    details: "Go, Python"
+achievements:
+  - name: "Second place"
+    date: "2022-08-11"
 `
 
 func renderYAML(t *testing.T, opts Options, doc string) []byte {
@@ -118,6 +147,54 @@ func TestRenderA4(t *testing.T) {
 	out := renderSample(t, Options{Paper: "a4"})
 	if !strings.HasPrefix(string(out), "%PDF-") {
 		t.Fatal("A4 render did not produce a PDF")
+	}
+}
+
+// TestRenderSpanish verifies that the PDF chrome (section headings, date
+// markers and the degree connector) follows Options.Language, while the YAML
+// content is left untouched.
+func TestRenderSpanish(t *testing.T) {
+	content := pdfContentStreams(t, renderYAML(t, Options{Language: i18n.Spanish}, spanishSampleYAML))
+
+	wants := []string{
+		"EDUCACIÓN",
+		"EXPERIENCIA",
+		"PROYECTOS",
+		"HABILIDADES",
+		"LOGROS",
+		"ago 2020 \u2013 Actualidad",
+		"jun 2024 \u2013 Actualidad",
+		"BS en Computer Science",
+		"11 ago 2022",
+		"Resumen profesional conciso.",
+	}
+	for _, w := range wants {
+		if !strings.Contains(content, utf16BE(w)) {
+			t.Errorf("Spanish render is missing %q", w)
+		}
+	}
+
+	// English chrome must be absent.
+	for _, unwanted := range []string{"EDUCATION", "PRESENT"} {
+		if strings.Contains(content, utf16BE(unwanted)) {
+			t.Errorf("Spanish render should not contain %q", unwanted)
+		}
+	}
+}
+
+// TestRenderDefaultsToEnglish guards the historical default: without an
+// explicit language the chrome stays in English.
+func TestRenderDefaultsToEnglish(t *testing.T) {
+	content := pdfContentStreams(t, renderSample(t, Options{}))
+	wants := []string{
+		"EDUCATION",
+		"Aug 2020 \u2013 May 2024",
+		"BS in Computer Science",
+	}
+	for _, w := range wants {
+		if !strings.Contains(content, utf16BE(w)) {
+			t.Errorf("default render is missing %q", w)
+		}
 	}
 }
 

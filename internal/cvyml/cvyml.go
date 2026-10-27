@@ -14,6 +14,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/miguehm/yml-to-cv/internal/i18n"
 	"github.com/miguehm/yml-to-cv/internal/model"
 	"github.com/miguehm/yml-to-cv/internal/render"
 )
@@ -30,6 +31,10 @@ type Options struct {
 	Paper string
 	// Margin is the page margin in millimetres; zero uses the default.
 	Margin float64
+	// Lang selects the language of the text the renderer emits itself
+	// (section headings, date markers, degree connector): "en" (default) or
+	// "es". User content from the YAML is never translated.
+	Lang string
 }
 
 // Parse decodes and validates a CV from its YAML representation.
@@ -44,12 +49,17 @@ func Render(w io.Writer, data []byte, opts Options) error {
 		return err
 	}
 
+	lang, err := i18n.Parse(opts.Lang)
+	if err != nil {
+		return err
+	}
+
 	cv, err := model.Parse(data)
 	if err != nil {
 		return err
 	}
 
-	r := render.NewHarvard(render.Options{Paper: paper, Margin: opts.Margin})
+	r := render.NewHarvard(render.Options{Paper: paper, Margin: opts.Margin, Language: lang})
 	if err := r.Render(w, cv); err != nil {
 		return fmt.Errorf("error al generar el PDF: %w", err)
 	}

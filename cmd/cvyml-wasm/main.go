@@ -7,7 +7,7 @@
 //
 // Load it from a page alongside the matching Go wasm_exec.js, then call:
 //
-//	const result = cvyml.render(yamlText, {paper: "a4", margin: 15});
+//	const result = cvyml.render(yamlText, {paper: "a4", margin: 15, lang: "es"});
 //	if (result.error) throw new Error(result.error);
 //	const pdf = result.pdf; // Uint8Array
 //
@@ -35,7 +35,7 @@ func main() {
 // render(data[, options]) -> {pdf, error}
 //
 // options may be a paper-size string ("letter" or "a4") or an object of the
-// form {paper: string, margin: number}.
+// form {paper: string, margin: number, lang: string}.
 func render(_ js.Value, args []js.Value) any {
 	if len(args) == 0 || args[0].Type() != js.TypeString {
 		return fail("se esperaba el YAML como primer argumento (string)")
@@ -80,6 +80,9 @@ func optionsFrom(args []js.Value, i int) cvyml.Options {
 		}
 		if m := v.Get("margin"); m.Type() == js.TypeNumber {
 			opts.Margin = m.Float()
+		}
+		if l := v.Get("lang"); l.Type() == js.TypeString {
+			opts.Lang = l.String()
 		}
 	}
 	return opts

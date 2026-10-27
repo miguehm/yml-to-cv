@@ -9,6 +9,7 @@ import (
 	"github.com/go-pdf/fpdf"
 	"github.com/miguehm/yml-to-cv/assets/fonts"
 	assetIcons "github.com/miguehm/yml-to-cv/assets/icons"
+	"github.com/miguehm/yml-to-cv/internal/i18n"
 	"github.com/miguehm/yml-to-cv/internal/icons"
 	"github.com/miguehm/yml-to-cv/internal/model"
 )
@@ -51,6 +52,9 @@ func (o Options) withDefaults() Options {
 	if o.CreationDate.IsZero() {
 		o.CreationDate = time.Date(fixedCreationUTC, 1, 1, 0, 0, 0, 0, time.UTC)
 	}
+	if o.Language == "" {
+		o.Language = i18n.English
+	}
 	return o
 }
 
@@ -86,6 +90,8 @@ func (h *harvardRenderer) Render(w io.Writer, cv *model.CV) error {
 		lineH:     ptToMM(o.BodySize) * 1.28,
 		indent:    4.0,
 		left:      o.Margin,
+		lang:      o.Language,
+		cat:       i18n.For(o.Language),
 		pageWidth: 0,
 	}
 	d.pageWidth, d.pageHeight = pdf.GetPageSize()
@@ -101,27 +107,27 @@ func (h *harvardRenderer) Render(w io.Writer, cv *model.CV) error {
 		}
 		switch name {
 		case model.SectionEducation:
-			d.title("Education")
+			d.title(d.cat.Education)
 			for _, e := range cv.Education {
 				d.education(e)
 			}
 		case model.SectionExperience:
-			d.title("Experience")
+			d.title(d.cat.Experience)
 			for _, e := range cv.Experience {
 				d.experience(e)
 			}
 		case model.SectionProjects:
-			d.title("Projects")
+			d.title(d.cat.Projects)
 			for _, p := range cv.Projects {
 				d.project(p)
 			}
 		case model.SectionSkills:
-			d.title("Skills")
+			d.title(d.cat.Skills)
 			for _, s := range cv.Skills {
 				d.skill(s)
 			}
 		case model.SectionAchievements:
-			d.title("Achievements")
+			d.title(d.cat.Achievements)
 			for _, a := range cv.Achievements {
 				d.achievement(a)
 			}
@@ -148,6 +154,8 @@ type harvardDoc struct {
 	pageHeight       float64
 	contentWidth     float64
 	pageBreakTrigger float64
+	lang             i18n.Language
+	cat              i18n.Catalog
 }
 
 func ptToMM(pt float64) float64 { return pt / 72.0 * 25.4 }
@@ -442,8 +450,8 @@ func (d *harvardDoc) paragraph(text string) {
 }
 
 func (d *harvardDoc) education(e model.Education) {
-	title := degreeTitle(e.Degree, e.Area)
-	d.entryLine(title, model.FormatRange(e.Start, e.End), "B")
+	title := degreeTitle(e.Degree, e.Area, d.cat.DegreeConnector)
+	d.entryLine(title, model.FormatRangeIn(e.Start, e.End, d.lang), "B")
 
 	sub := e.Institution
 	if e.Location != "" {
@@ -458,7 +466,7 @@ func (d *harvardDoc) education(e model.Education) {
 }
 
 func (d *harvardDoc) experience(e model.Experience) {
-	d.entryLine(e.Position, model.FormatRange(e.Start, e.End), "B")
+	d.entryLine(e.Position, model.FormatRangeIn(e.Start, e.End, d.lang), "B")
 
 	sub := e.Company
 	if e.Location != "" {
@@ -479,7 +487,7 @@ func (d *harvardDoc) project(p model.Project) {
 		// paper, while the name and the URL both link to the full URL on screen.
 		title = fmt.Sprintf("[%s](%s) ([%s](%s))", p.Name, p.URL, shortURL(p.URL), p.URL)
 	}
-	d.entryLine(title, p.Date.FormatPoint(), "B")
+	d.entryLine(title, p.Date.FormatPointIn(d.lang), "B")
 	d.paragraph(p.Summary)
 	for _, h := range p.Highlights {
 		d.bullet(h)
@@ -520,25 +528,28 @@ func (d *harvardDoc) skill(s model.Skill) {
 }
 
 func (d *harvardDoc) achievement(a model.Achievement) {
-	d.entryLine(a.Name, a.Date.FormatPoint(), "B")
+	d.entryLine(a.Name, a.Date.FormatPointIn(d.lang), "B")
 	for _, h := range a.Highlights {
 		d.bullet(h)
 	}
 	d.pdf.Ln(d.lineH * 0.35)
 }
 
-// degreeTitle combines degree and area, e.g. "BS in Computer Science
-// Engineering".
-func degreeTitle(degree, area string) string {
+// degreeTitle combines degree and area with the connector of the active
+// language, e.g. "BS in Computer Science" or "BS en Computer Science".
+func degreeTitle(degree, area, connector string) string {
 	degree = strings.TrimSpace(degree)
 	area = strings.TrimSpace(area)
+	if connector = strings.TrimSpace(connector); connector != "" {
+		connector += " "
+	}
 	switch {
 	case degree == "":
 		return area
 	case area == "":
 		return degree
 	default:
-		return degree + " in " + area
+		return degree + " " + connector + area
 	}
 }
 

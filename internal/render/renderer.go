@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/miguehm/yml-to-cv/internal/i18n"
 	"github.com/miguehm/yml-to-cv/internal/model"
 )
 
@@ -20,6 +21,10 @@ type Options struct {
 	// CreationDate is written into the PDF metadata. A zero value uses a fixed
 	// date so that repeated runs produce byte-identical output.
 	CreationDate time.Time
+	// Language selects the translation of the text the renderer emits itself
+	// (section headings, date markers, degree connector). A zero value is
+	// English. User content from the YAML is never translated.
+	Language i18n.Language
 }
 
 // Renderer renders a CV to PDF.
