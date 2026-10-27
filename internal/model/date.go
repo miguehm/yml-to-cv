@@ -7,13 +7,9 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
-)
 
-// monthNames holds the English month abbreviations used in the rendered output.
-var monthNames = [...]string{
-	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-}
+	"github.com/miguehm/yml-to-cv/internal/i18n"
+)
 
 // PartialDate represents a date with optional precision. A zero value means the
 // date is unknown/absent, which is useful for open-ended ranges ("Present").
@@ -96,44 +92,62 @@ func (d PartialDate) IsZero() bool {
 	return d.Year == 0 && d.Month == 0 && d.Day == 0
 }
 
-// monthYear renders "Aug 2020", or just "2020" when the month is unknown.
-func (d PartialDate) monthYear() string {
+// monthYearIn renders "Aug 2020" (or "ago 2020"), or just "2020" when the
+// month is unknown.
+func (d PartialDate) monthYearIn(lang i18n.Language) string {
 	if d.Year == 0 {
 		return ""
 	}
-	if d.Month == 0 {
-		return strconv.Itoa(d.Year)
+	cat := i18n.For(lang)
+	month := ""
+	if d.Month != 0 {
+		month = cat.MonthNames[d.Month-1]
 	}
-	return monthNames[d.Month-1] + " " + strconv.Itoa(d.Year)
+	return cat.FormatDate(0, month, d.Year)
 }
 
 // FormatPoint renders a single date, including the day when known:
 // "Aug 11, 2022" or "Aug 2022" or "2020".
 func (d PartialDate) FormatPoint() string {
+	return d.FormatPointIn(i18n.English)
+}
+
+// FormatPointIn renders a single date in the given language, including the day
+// when known: "Aug 11, 2022" in English, "11 ago 2022" in Spanish.
+func (d PartialDate) FormatPointIn(lang i18n.Language) string {
 	if d.Year == 0 {
 		return ""
 	}
-	if d.Day != 0 {
-		return fmt.Sprintf("%s %d, %d", monthNames[d.Month-1], d.Day, d.Year)
+	cat := i18n.For(lang)
+	month := ""
+	if d.Month != 0 {
+		month = cat.MonthNames[d.Month-1]
 	}
-	return d.monthYear()
+	return cat.FormatDate(d.Day, month, d.Year)
 }
 
 // FormatRange renders a start/end range. A missing end is rendered as
 // "Present"; identical start and end collapse to a single date.
 func FormatRange(start, end PartialDate) string {
+	return FormatRangeIn(start, end, i18n.English)
+}
+
+// FormatRangeIn renders a start/end range in the given language. A missing end
+// is rendered with the language's "Present" marker.
+func FormatRangeIn(start, end PartialDate, lang i18n.Language) string {
+	cat := i18n.For(lang)
 	switch {
 	case start.IsZero() && end.IsZero():
 		return ""
 	case start.IsZero():
-		return end.FormatPoint()
+		return end.FormatPointIn(lang)
 	case end.IsZero():
-		return start.monthYear() + " \u2013 Present"
+		return start.monthYearIn(lang) + " \u2013 " + cat.Present
 	case start == end:
-		return start.monthYear()
+		return start.monthYearIn(lang)
 	case start.Year == end.Year && start.Month == 0 && end.Month == 0:
 		return strconv.Itoa(start.Year)
 	default:
-		return start.monthYear() + " \u2013 " + end.monthYear()
+		return start.monthYearIn(lang) + " \u2013 " + end.monthYearIn(lang)
 	}
 }

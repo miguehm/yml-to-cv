@@ -1,6 +1,10 @@
 package model
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/miguehm/yml-to-cv/internal/i18n"
+)
 
 func TestParseDate(t *testing.T) {
 	cases := []struct {
@@ -73,6 +77,49 @@ func TestFormatRange(t *testing.T) {
 	for _, c := range cases {
 		if got := FormatRange(must(c.start), must(c.end)); got != c.want {
 			t.Errorf("FormatRange(%q,%q) = %q, want %q", c.start, c.end, got, c.want)
+		}
+	}
+}
+
+func TestFormatPointSpanish(t *testing.T) {
+	cases := map[string]string{
+		"2020":       "2020",
+		"2020-08":    "ago 2020",
+		"2022-08-11": "11 ago 2022",
+		"2022-12-31": "31 dic 2022",
+	}
+	for in, want := range cases {
+		d, err := ParseDate(in)
+		if err != nil {
+			t.Fatalf("ParseDate(%q): %v", in, err)
+		}
+		if got := d.FormatPointIn(i18n.Spanish); got != want {
+			t.Errorf("FormatPointIn(%q, es) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestFormatRangeSpanish(t *testing.T) {
+	must := func(s string) PartialDate {
+		d, err := ParseDate(s)
+		if err != nil {
+			t.Fatalf("ParseDate(%q): %v", s, err)
+		}
+		return d
+	}
+	cases := []struct {
+		start, end string
+		want       string
+	}{
+		{"2020-08", "2024-05", "ago 2020 \u2013 may 2024"},
+		{"2020-08", "", "ago 2020 \u2013 Actualidad"},
+		{"2025-06", "2025-06", "jun 2025"},
+		{"2020", "2024", "2020 \u2013 2024"},
+		{"", "", ""},
+	}
+	for _, c := range cases {
+		if got := FormatRangeIn(must(c.start), must(c.end), i18n.Spanish); got != c.want {
+			t.Errorf("FormatRangeIn(%q,%q,es) = %q, want %q", c.start, c.end, got, c.want)
 		}
 	}
 }
