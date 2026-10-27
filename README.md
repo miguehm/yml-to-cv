@@ -25,7 +25,10 @@ generar el PDF.
 - **Validación estricta**: los campos desconocidos o mal escritos producen un
   error en lugar de perder datos silenciosamente.
 - **Fechas con precisión parcial**: acepta `YYYY`, `YYYY-MM` y `YYYY-MM-DD`, y
-  soporta rangos abiertos ("Present").
+  soporta rangos abiertos ("Present" / "Actualidad").
+- **Bilingüe (en/es)**: los títulos de sección, las fechas y el resto de textos
+  que el propio renderizador escribe se traducen con `-lang es`. El contenido
+  del YAML nunca se traduce.
 - **Fuentes embebidas**: Tinos (compatible en métricas con Times New Roman) con
   soporte completo de UTF-8.
 
@@ -94,6 +97,9 @@ cvyml -in cv.yml -out cv.pdf -paper a4 -margin 15
 # Margen personalizado en milímetros
 ./bin/cvyml -margin 15
 
+# Títulos y fechas en español
+./bin/cvyml -lang es
+
 # Imprime el CV ya parseado/normalizado como YAML y termina
 ./bin/cvyml -dump
 ```
@@ -106,6 +112,7 @@ Banderas disponibles:
 | `-out`    | `cv.pdf`          | Ruta del PDF de salida.                                   |
 | `-paper`  | `letter`          | Tamaño de papel: `letter` o `a4`.                         |
 | `-margin` | `0`               | Margen de página en mm (`0` usa 19.05 mm = 0.75 in).      |
+| `-lang`   | `en`              | Idioma de los textos del PDF: `en` o `es`.                |
 | `-dump`   | `false`           | Imprime el CV parseado como YAML y sale sin generar PDF.  |
 
 ### Makefile
@@ -144,7 +151,10 @@ El flujo es lineal y consta de tres etapas:
    contacto con iconos y enlaces centrados, con salto automático de línea, y el
    resumen profesional como párrafo justificado) y recorre `section_order`,
    saltando las secciones sin contenido. Cada tipo de entrada (educación,
-   experiencia, proyecto, aptitud, logro) tiene su propia función de dibujo.
+   experiencia, proyecto, aptitud, logro) tiene su propia función de dibujo. Los
+   textos que el renderizador escribe por su cuenta (títulos de sección, meses,
+   "Present"/"Actualidad" y el conector de los grados) salen del catálogo
+   `internal/i18n` según el idioma elegido.
 3. **Salida PDF**: el documento se escribe directamente al `io.Writer` de salida
    mediante `go-pdf/fpdf`. La fecha de creación se fija por defecto en
    `2000-01-01` y se activa `SetCatalogSort` para que el PDF resultante sea
@@ -159,6 +169,7 @@ internal/cli/       Banderas, I/O de ficheros y código de salida de la CLI.
 internal/cvyml/     Núcleo portable: parseo, volcado y render (sin I/O).
 internal/model/     Esquema del CV, parseo YAML y tipo PartialDate.
 internal/render/    Renderizador Harvard y utilidades de texto/enlaces.
+internal/i18n/      Catálogo de traducciones (en/es) del chrome del PDF.
 internal/icons/     Registro de iconos y su mapeo a puntos de código.
 assets/fonts/       Fuentes Tinos embebidas (OFL).
 assets/icons/       Tipo de letra Bootstrap Icons embebida (MIT).
@@ -183,7 +194,7 @@ const { instance } = await WebAssembly.instantiateStreaming(
 );
 go.run(instance);
 
-const { pdf, error } = cvyml.render(yamlText, { paper: "a4", margin: 15 });
+const { pdf, error } = cvyml.render(yamlText, { paper: "a4", margin: 15, lang: "es" });
 if (error) throw new Error(error);
 // `pdf` es un Uint8Array con el PDF listo para descargar.
 ```
@@ -196,8 +207,9 @@ API expuesta:
 | `cvyml.parse(yaml)`        | `{ yaml, error }` | Devuelve el CV validado y normalizado como YAML.   |
 
 `opts` es opcional y puede ser una cadena (`"letter"` o `"a4"`) o un objeto
-`{ paper, margin }`. Las funciones no lanzan excepciones: ante un error
-devuelven el objeto con `error` establecido y el campo de carga útil a `null`.
+`{ paper, margin, lang }`, donde `lang` es `"en"` (por defecto) o `"es"`. Las
+funciones no lanzan excepciones: ante un error devuelven el objeto con `error`
+establecido y el campo de carga útil a `null`.
 
 ## Del YAML al PDF
 
@@ -218,7 +230,20 @@ Cada bloque del YAML se traduce a una zona concreta del documento:
 
 Las secciones que no aparecen en `section_order`, o que existen pero están
 vacías, se omiten sin dejar huecos. Los títulos de sección se muestran siempre en
-mayúsculas.
+mayúsculas y en el idioma elegido con `-lang`:
+
+| Sección (`section_order`) | `en`     | `es`         |
+| ------------------------- | -------- | ------------ |
+| `education`               | Education | Educación    |
+| `experience`              | Experience | Experiencia |
+| `projects`                | Projects | Proyectos    |
+| `skills`                  | Skills   | Habilidades  |
+| `achievements`            | Achievements | Logros   |
+
+Solo se traduce el texto que el propio renderizador escribe (títulos de sección,
+marcadores de fechas y el conector de los grados, p. ej. `BS in Computer
+Science` / `BS en Computer Science`). El contenido del YAML —nombres, resúmenes,
+viñetas— se imprime tal cual.
 
 ### Valores por defecto del PDF
 
@@ -226,6 +251,7 @@ mayúsculas.
 | ----------------- | -------------------------------------------------- | --------------------------------- |
 | Papel             | `letter`                                           | `-paper a4`                       |
 | Margen            | 19.05 mm (0.75 in)                                 | `-margin <mm>`                    |
+| Idioma            | `en`                                               | `-lang es`                        |
 | Tipografía        | Tinos (métricas compatibles con Times New Roman)  | No configurable desde la CLI.     |
 | Cuerpo            | 10 pt                                              | No configurable desde la CLI.     |
 | Nombre            | 20 pt                                              | No configurable desde la CLI.     |
@@ -276,7 +302,7 @@ experience:
     position: "Backend Developer"
     location: "Remote"
     start: "2024-06"
-    end: ""                           # vacío = Present
+    end: ""                           # vacío = Present / Actualidad
     highlights:
       - "Construyó APIs REST con Go y PostgreSQL."
 
@@ -343,10 +369,10 @@ Las secciones sin datos se omiten automáticamente.
 | ------------- | -------- | ----------- | ----------------------------------------------------- |
 | `institution` | string   | sí          | Institución, dibujada en cursiva.                     |
 | `degree`      | string   | no          | Grado (p. ej. `BS`).                                  |
-| `area`        | string   | no          | Área de estudio. Se combina como `degree in area`.    |
+| `area`        | string   | no          | Área de estudio. Se combina con `degree` usando el conector del idioma (`BS in area` / `BS en area`). |
 | `location`    | string   | no          | Ubicación; se añade a la institución separada por coma. |
 | `start`       | fecha    | no          | Inicio del rango de fechas.                           |
-| `end`         | fecha    | no          | Fin del rango (vacío = "Present").                    |
+| `end`         | fecha    | no          | Fin del rango (vacío = "Present" / "Actualidad").     |
 | `highlights`  | [string] | no          | Viñetas descriptivas bajo la entrada.                 |
 
 ### `experience`
@@ -357,7 +383,7 @@ Las secciones sin datos se omiten automáticamente.
 | `position`   | string   | sí          | Puesto, usado como título de la entrada.      |
 | `location`   | string   | no          | Ubicación; se añade a la empresa con una coma. |
 | `start`      | fecha    | no          | Inicio del rango de fechas.                   |
-| `end`        | fecha    | no          | Fin del rango (vacío = "Present").            |
+| `end`        | fecha    | no          | Fin del rango (vacío = "Present" / "Actualidad"). |
 | `highlights` | [string] | no          | Viñetas de responsabilidades.                 |
 
 ### `projects`
@@ -404,18 +430,22 @@ Las secciones sin datos se omiten automáticamente.
 
 ## Fechas
 
-El campo `PartialDate` acepta precisión parcial:
+El campo `PartialDate` acepta precisión parcial. El idioma de los meses y del
+marcador de rango abierto lo controla `-lang`:
 
-| Formato       | Ejemplo      | Se muestra como     |
-| ------------- | ------------ | ------------------- |
-| `YYYY`        | `2020`       | `2020`              |
-| `YYYY-MM`     | `2020-08`    | `Aug 2020`          |
-| `YYYY-MM-DD`  | `2022-08-11` | `Aug 11, 2022`      |
+| Formato       | Ejemplo      | Se muestra como (`en`) | Se muestra como (`es`) |
+| ------------- | ------------ | ---------------------- | ---------------------- |
+| `YYYY`        | `2020`       | `2020`                 | `2020`                 |
+| `YYYY-MM`     | `2020-08`    | `Aug 2020`             | `ago 2020`             |
+| `YYYY-MM-DD`  | `2022-08-11` | `Aug 11, 2022`         | `11 ago 2022`          |
+
+En español el día va delante del mes, y los meses abrevian `ene, feb, mar, abr,
+may, jun, jul, ago, sep, oct, nov, dic`.
 
 Reglas de los rangos:
 
 - `start` y `end` iguales colapsan a una sola fecha.
-- Un `end` vacío se renderiza como `– Present`.
+- Un `end` vacío se renderiza como `– Present` (`en`) o `– Actualidad` (`es`).
 - Si tanto `start` como `end` comparten el mismo año y no tienen mes, se
   muestra el año una sola vez.
 - Las combinaciones imposibles (p. ej. `2024-02-31`) son un error.
@@ -535,8 +565,9 @@ make check      # formato, vet y pruebas
 Las pruebas del paquete `internal/render` descomprimen los flujos de contenido
 del PDF y verifican propiedades concretas: que la salida sea determinista, que
 el resumen profesional se dibuje en el documento, que las fechas queden
-alineadas a la derecha, que los iconos compartan línea base con su texto y que
-la línea de contacto haga salto de línea cuando no cabe.
+alineadas a la derecha, que los iconos compartan línea base con su texto, que
+la línea de contacto haga salto de línea cuando no cabe y que el chrome salga
+en español con `-lang es` (y en inglés por defecto).
 
 ## Licencia y atribuciones
 
